@@ -27,9 +27,9 @@ $ pip install -r requirements.txt
 ```
 $ git clone https://github.com/soulpa/PersonalHealthAgentgit
 ```
-- Navigate into the main directory
+- Navigate into the src directory
 ```
-cd PersonalHealthAgent/
+cd PersonalHealthAgent/src/
 ```
 
 ### 4. Run Website Remotely
