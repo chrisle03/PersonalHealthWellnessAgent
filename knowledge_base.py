@@ -10,53 +10,53 @@ from typing import Callable, Dict, List, Tuple, Optional, Any
 import json, math, re, textwrap, random, os, sys
 import math
 from collections import Counter, defaultdict
+import pandas as pd
 
-# A toy corpus mimicing the documents of Wikipedia
-CORPUS = [
-    {
-        "id": "doc1",
-        "title": "Vincent van Gogh",
-        "text": (
-            "Vincent van Gogh was a Dutch post-impressionist painter who is among the most famous and influential figures "
-            "in the history of Western art. He created about 2,100 artworks, including The Starry Night, while staying at "
-            "the Saint-Paul-de-Mausole asylum in Saint-Rémy-de-Provence in 1889."
-        ),
-    },
-    {
-        "id": "doc2",
-        "title": "The Starry Night",
-        "text": (
-            "The Starry Night is an oil-on-canvas painting by Dutch Post-Impressionist painter Vincent van Gogh. "
-            "Painted in June 1889, it depicts the view from the east-facing window of his asylum room at Saint-Rémy-de-Provence, "
-            "just before sunrise, with the addition of an ideal village."
-        ),
-    },
-    {
-        "id": "doc3",
-        "title": "Saint-Rémy-de-Provence",
-        "text": (
-            "Saint-Rémy-de-Provence is a commune in the Bouches-du-Rhône department in Southern France. The Saint-Paul-de-Mausole "
-            "asylum is located here, where Vincent van Gogh stayed and painted several works including The Starry Night."
-        ),
-    },
-    {
-        "id": "doc4",
-        "title": "Pythagorean theorem",
-        "text": (
-            "In mathematics, the Pythagorean theorem is a fundamental relation in Euclidean geometry among the three sides of a "
-            "right-angled triangle: the square of the hypotenuse equals the sum of the squares of the other two sides."
-        ),
-    },
-    {
-        "id": "doc5",
-        "title": "Claude Monet",
-        "text": (
-            "Claude Monet was a French painter, a founder of Impressionist painting. His works include the Water Lilies series, "
-            "Haystacks, and Impression, Sunrise."
-        ),
-    },
-    # A quick play around: Add some extra documents and watch how the GPT model explores, searches, and reasons through more scenarios in the final step.
-]
+    # 1. Load the dataset
+if os.path.exists("recipes_cleaned.csv"):
+    recipes_data = pd.read_csv("recipes_cleaned.csv")
+elif os.path.exists("recipes.csv"):
+    recipes_data = pd.read_csv("recipes.csv")
+    # Rename columns to match the expected schema if using raw file
+    recipes_data = recipes_data.rename(columns={'recipe_name': 'Name', 'total_time': 'Total Time'})
+else:
+    recipes_data = pd.DataFrame()
+    print("❌ Error: No recipe data found.")
+
+# 2. Build the Corpus
+CORPUS = []
+
+# Handle missing values to prevent errors during iteration
+recipes_data['Name'] = recipes_data['Name'].fillna("Unnamed Recipe")
+recipes_data['Ingredients'] = recipes_data['Ingredients'].fillna("")
+recipes_data['Total Time'] = recipes_data.get('Total Time', 'Unknown').fillna('Unknown')
+recipes_data['URL'] = recipes_data.get('URL', '').fillna('')
+
+for index, row in recipes_data.iterrows():
+    # ADAPTATION: The template expects a list of dicts [{'name': 'salt'}, ...], 
+    # but our current CSV has ingredients as a plain string (e.g., "1 cup flour, 2 eggs...").
+    # We use the string directly if it's not a list structure.
+    raw_ingredients = row["Ingredients"]
+    
+    if isinstance(raw_ingredients, str) and raw_ingredients.strip().startswith("[{"):
+        try:
+            ing_list = ast.literal_eval(raw_ingredients)
+            ingredient_names = " ".join([i.get("name", "") for i in ing_list])
+        except:
+            ingredient_names = raw_ingredients
+    else:
+        ingredient_names = str(raw_ingredients)
+
+    recipe_entry = {
+        "id": f"recipe{index}",
+        "recipe": row["Name"],
+        "text": f"{row['Name']} {ingredient_names}", 
+        "total_time": row["Total Time"],
+        "url": row["URL"]
+    }
+    CORPUS.append(recipe_entry)
+
+print(f"Knowledge Base loaded with {len(CORPUS)} documents.")
 
 # Then, we design a simple search method based on TF-IDF to retrieve information from the corpus.
 
@@ -90,11 +90,12 @@ def compute_tf(tokens: List[str]) -> Dict[str, float]:
 
     # ===== TODO =====
     # implement the function to compute normalized term frequency: count of word / doc length
-    
-    return {}
+    if not tokens:
+        return {}
+    count = Counter(tokens)
+    length = len(tokens)
+    return {t: c / length for t, c in count.items()}
     # ===== TODO =====
-
-
 
 # 3.   Compute the document frequency across corpus: how many docs does a word appear?
 def compute_df(doc_tokens: List[List[str]]) -> Dict[str, float]:
@@ -103,9 +104,13 @@ def compute_df(doc_tokens: List[List[str]]) -> Dict[str, float]:
 
     # ===== TODO =====
     # implement the function to compute document frequency: count of the word appearing in the documents
-    
+    df_counts = defaultdict(int)
+    for tokens in doc_tokens:
+        unique_tokens = set(tokens)
+        for t in unique_tokens:
+            df_counts[t] += 1
+    return df_counts 
     # ===== TODO =====
-    return {}
 
 #     Compute the inverse document frequency (higher for rarer terms), in which we use a smoothed variant
 DF = compute_df(DOC_TOKENS) # Get the DF
@@ -136,13 +141,16 @@ def cosine(a: Dict[str, float], b: Dict[str, float]) -> float:
     # ===== TODO =====
     # Compute the cosine similarity between two tf-idf vectors
     # Notice that they are two dictionaries and could have missing keys
+    common_keys = set(a.keys()) & set(b.keys())
+    dot_product = sum(a[k] * b[k] for k in common_keys)
     
-    # compute dot product
-    
-    # compute norms
-    similarity = None
+    # Norms
+    norm_a = math.sqrt(sum(v*v for v in a.values()))
+    norm_b = math.sqrt(sum(v*v for v in b.values()))
+
+    # Similarity with epsilon for stability
+    return dot_product / (norm_a * norm_b + 1e-12)
     # ===== TODO =====
-    return similarity
 
 
 # 6.   We implement a search method based on the cosine similarity, which finds the documents with the highest similarity scores as the top-k search results.
