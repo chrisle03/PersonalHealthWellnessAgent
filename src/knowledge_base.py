@@ -8,20 +8,49 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Callable, Dict, List, Tuple, Optional, Any
 import json, math, re, textwrap, random, os, sys
+import ast  # ✅ ADD THIS IMPORT
 import math
 from collections import Counter, defaultdict
 import pandas as pd
 
     # 1. Load the dataset
-if os.path.exists("recipes_cleaned.csv"):
-    recipes_data = pd.read_csv("recipes_cleaned.csv")
-elif os.path.exists("recipes.csv"):
-    recipes_data = pd.read_csv("recipes.csv")
-    # Rename columns to match the expected schema if using raw file
-    recipes_data = recipes_data.rename(columns={'recipe_name': 'Name', 'total_time': 'Total Time'})
+DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data")
+
+cleaned_path = os.path.join(DATA_PATH, "recipes_cleaned.csv")
+raw_path = os.path.join(DATA_PATH, "recipes.csv")
+
+if os.path.exists(cleaned_path):
+    recipes_data = pd.read_csv(cleaned_path)
+elif os.path.exists(raw_path):
+    recipes_data = pd.read_csv(raw_path)
+    recipes_data = recipes_data.rename(columns={
+        'recipe_name': 'Name',
+        'total_time': 'Total Time',
+        'ingredients': 'Ingredients',
+        'directions': 'Directions',
+        'url': 'URL'
+    })
 else:
-    recipes_data = pd.DataFrame()
     print("❌ Error: No recipe data found.")
+    recipes_data = pd.DataFrame()
+
+
+
+if "Name" not in recipes_data.columns:
+    recipes_data["Name"] = "Unnamed Recipe"
+recipes_data["Name"] = recipes_data["Name"].fillna("Unnamed Recipe")
+
+if "Ingredients" not in recipes_data.columns:
+    recipes_data["Ingredients"] = ""
+recipes_data["Ingredients"] = recipes_data["Ingredients"].fillna("")
+
+if "Total Time" not in recipes_data.columns:
+    recipes_data["Total Time"] = "Unknown"
+recipes_data["Total Time"] = recipes_data["Total Time"].fillna("Unknown")
+
+if "URL" not in recipes_data.columns:
+    recipes_data["URL"] = ""
+recipes_data["URL"] = recipes_data["URL"].fillna("")
 
 # 2. Build the Corpus
 CORPUS = []
@@ -64,7 +93,7 @@ print(f"Knowledge Base loaded with {len(CORPUS)} documents.")
 
 # 1. We will tokenize each document and the query into words.
 # 2. We will compute TF (Term Frequency) to measure how often a word appears in a document. More frequent indicates more important within that document.
-# 3. We will compute IDF (Inverse Document Frequency), which is used to downweight words that are common across many documents, like “the” or “and,” and upweight rarer words.
+# 3. We will compute IDF (Inverse Document Frequency), which is used to downweight words that are common across many documents, like "the" or "and," and upweight rarer words.
 # 4. We will compute TF-IDF vectors (containing the TF-IDF score for each word) for both documents and the query, then compute cosine similarity between the query vector and each document vector.
 # 5. We will compute cosine similarity between the query vector and each document vector.
 # 6. We will implement a search method that finds the documents with the highest similarity scores as the top-k search results.
@@ -77,7 +106,7 @@ def tokenize(text: str) -> List[str]:
     return re.findall(r"[a-zA-Z0-9']+", text.lower())
 
 #     Get all the words of each document in the corpus
-DOC_TOKENS = [tokenize(d["title"] + " " + d["text"]) for d in CORPUS]
+DOC_TOKENS = [tokenize(d["recipe"] + " " + d["text"]) for d in CORPUS]
 
 #     Get all the words from the corpus
 VOCAB = sorted(set(t for doc in DOC_TOKENS for t in doc))
@@ -173,7 +202,12 @@ def tool_search(query: str, k: int = 3) -> Dict[str, Any]:
         "tool": "search",
         "query": query,
         "results": [
-            {"id": h["id"], "title": h["title"], "snippet": h["text"][:240] + ("..." if len(h["text"]) > 240 else "")}
+            {
+                "id": h["id"], 
+                "title": h["recipe"], 
+                "snippet": str(h.get("text", ""))[:240] + ("..." if len(str(h.get("text", ""))) > 240 else ""),
+                "total_time": h.get("total_time", "Unknown")
+            }
             for h in hits
         ],
     }

@@ -7,7 +7,7 @@
 # We define:
 #   1) A method for parsing Action lines
 #   2) A small argument parser for the tools defined in the last step, such as parsing key="value", key=123, key=4.5, key=true/false
-#   3) Helpers to format the agent’s history and build the next prompt
+#   3) Helpers to format the agent's history and build the next prompt
 from typing import Any, Dict, List, Optional, Tuple
 import ast
 import re
@@ -85,7 +85,11 @@ def parse_action(line: str) -> Optional[Tuple[str, Dict[str, Any]]]:
     # ====== TODO ======
     #     Use the parse_args function above to write a function that converts an action string to a function call
     #     Return the name of the function and the args
-    name = None; args = None
+    name = None
+    args = None
+
+    # ✅ FIX: Use 'line' instead of 's', or rename to 's' at the start
+    s = line  # Convert parameter name to what's used in the function body
 
     # 1) Must start with 'Action:'
     prefix = "Action:"
@@ -118,33 +122,38 @@ def parse_action(line: str) -> Optional[Tuple[str, Dict[str, Any]]]:
 
 
 # 2. We write a function that turn past steps into a readable history block for the prompt
-def format_history(trajectory: List[Dict[str, str]]) -> str:
+def format_history(trajectory: List) -> str:
     """
-    Each step in trajectory should have keys: 'thought', 'action', 'observation'.
+    Each step in trajectory should be a Step object with attributes: thought, action, observation.
     We render them in the canonical ReAct order for the next prompt.
     """
     lines: List[str] = []
     for step in trajectory:
-        lines.append(f"Thought: {step['thought']}")
-        lines.append(f"Action: {step['action']}")
-        lines.append(f"Observation: {step['observation']}")
+        # Access as attributes, not dictionary keys
+        lines.append(f"Thought: {step.thought}")
+        lines.append(f"Action: {step.action}")
+        lines.append(f"Observation: {step.observation}")
     return "\n".join(lines)
 
 
 # 3. We will build the prompt shown to the model for the next step
 SYSTEM_PREAMBLE = textwrap.dedent("""\
-    You are a helpful ReAct agent. You may use tools to answer factual questions.
+    You are a helpful ReAct agent that finds recipes based on ingredients and cooking time.
 
     Available tools:
-    - search[query="<text>", k=<int>]  # searches a small encyclopedia and returns top-k results
-    To finish, use: finish[answer="<final answer>"]
+    - search[query="<text>", k=<int>]  # searches recipe database and returns top-k results
+    - finish[answer="<recipe name>"]   # when you find a good recipe, return ONLY its exact name
+    
+    IMPORTANT: When you finish, the answer must be ONLY the recipe name from the search results.
+    Example: finish[answer="Chicken Mayonnaise"]
+    NOT: finish[answer="You can make Chicken Mayonnaise by..."]
 
     Follow the exact step format:
     Thought: <your reasoning>
-    Action: <one of the tool calls above, or finish[...]>
+    Action: <one of the tool calls above>
 """).strip()
 
-def make_prompt(user_query: str, trajectory: List[Dict[str, str]]) -> str:
+def make_prompt(user_query: str, trajectory: List) -> str:
     """
     Construct the model prompt by concatenating:
       (1) a clear system preamble with the tool contract,

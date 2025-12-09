@@ -1,0 +1,35 @@
+# === Virtual Environment ===
+fproj/
+fproj/*
+pyvenv.cfg
+bin/
+lib/
+include/
+share/
+etc/
+
+# === Python Cache ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# === MacOS ===
+.DS_Store
+
+# === Jupyter Checkpoints ===
+.ipynb_checkpoints/
+
+# === HuggingFace & Model Artifacts ===
+*.safetensors
+*.bin
+*.pt
+tokenizer.json
+special_tokens_map.json
+generation_config.json
+vocab.json
+merges.txt
+added_tokens.json
+
+# === VSCode Settings ===
+.vscode/
