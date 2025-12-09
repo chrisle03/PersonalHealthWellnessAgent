@@ -12,8 +12,15 @@ The Personal Health & Wellness Agent is an AI-powered system designed to create 
 ## Overview
 The recent boom in health and fitness has left many beginners confused by contradictory online advice. While professional coaching is effective, it is often prohibitively expensive. Beginners need a way to get structured, safe, and personalized guidance without sifting through endless articles or paying for a trainer.
 
-## Why It Matters
+### Why It Matters
 This project democratizes access to personalized health planning. Instead of a one-size-fits-all PDF, users get a plan that respects their nut allergy, their "intermediate" fitness level, and their specific goal to "build muscle." 
+
+### Key Components
+
+1. Agent Controller: Manages the thought-action loop.
+2. Knowledge Base: A custom TF-IDF search engine indexing thousands of recipes.
+3. Language Model: Qwen-2.5-0.5B-Instruct for natural language generation.
+4. User Interface: A Streamlit web application for real-time interaction.
 
 ## Approach
 Our agent operates on a sequential 4-step pipeline that we were introduced in class. After cleaning our initial csv file and creating a corpus we did the following:
@@ -28,12 +35,17 @@ Our agent operates on a sequential 4-step pipeline that we were introduced in cl
 2. Generative Model: We utilized the Qwen/Qwen2.5-0.5B-Instruct model from Hugging Face. This is a decoder-only transformer model optimized for instruction following.
 
 ## Experiments
-
 ### Dataset
 We curated two primary datasets for this project:
 1. recipes.csv: A collection of recipes with nutritional metadata (Calories, Vegetarian/Vegan tags, Gluten-Free tags). Sourced from Kaggle and manually cleaned.
 2. exercises.json: A structured list of exercises categorized by difficulty level (Beginner, Intermediate, Advanced) and target muscle group.
 
+### Parameters:
+- max_steps: 6 (to prevent infinite loops).
+- temperature: 0.01 (to ensure deterministic actions).
+- k: 3 (top search results per query).
+
+  
 ### Implementation Details
 Environment: The project was developed and executed in Google Colab using a T4 GPU runtime.
 Libraries: transformers, torch, pandas, accelerate.
@@ -51,7 +63,23 @@ Constraint Satisfaction: When tested with the query "I'm a vegetarian with a nut
 Level Appropriateness: When a user specified "beginner," the agent successfully filtered out "Advanced" moves like Barbell Squats, suggesting Bodyweight Squats instead.
 
 ### Example
+Here is a real trace of the agent solving a user query:
 
+User Query: "I have apples and cinnamon. What can I make in under 40 minutes?"
+
+Step 1:
+- Thought: The user wants a recipe with apples and cinnamon that takes less than 40 minutes. I need to search for recipes with these ingredients.
+- Action: search[query="apple cinnamon", k=3]
+- Observation:
+Apple Pie (Time: 90 mins)
+Apple Crisp (Time: 45 mins)
+Easy Applesauce (Time: 25 mins)
+
+Step 2:
+- Thought: Apple Pie and Apple Crisp take too long (90 and 45 mins). Easy Applesauce fits the 40-minute constraint (25 mins).
+- Action: finish[answer="Easy Applesauce"]
+
+Final Output to User: "Easy Applesauce" (Displayed with recipe card in App).
 
 ## Discussion
 
@@ -76,4 +104,6 @@ We successfully built a functional AI agent that bridges the gap between structu
 [2] Dataset Source: Kaggle.com Excercise Dataset. https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset/data
 
 [3] Model: Qwen2.5-0.5B-Instruct. https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct
+
+[4] Streamlit: Streamlit Documentation
 
