@@ -1,73 +1,79 @@
-# CS 4100 Course Project: Fall 2025
+# CS 4100 Course Project: Personal Health Wellness Agent
 
-In this course project, we will design an AI agent system, which uses a language model to understand text queries and perform actions—such as searching databases—to provide answers to queries. We will provide you with an example workflow to build an information retrieval agent, though you are also welcome to explore different topics and build your own agent instead.
+### Team Members: Christopher Le and Sam Castelein
 
-**Learning objectives**
+Course: CS 4100 Artificial Intelligence (Fall 2025)
 
-By the end of this project, you will learn the step-by-step workflow of implementing an agent system, including:
+Insallation instructions will be found in INSTALL.md.
 
-- A search method that, given an input query, retrieves the most relevant documents from a database.
-- Prompting an open-source language model to generate step-by-step actions given a query; Load and use a language model to produce outputs that follow a defined format.
-- Build an agent system capable of performing database retrieval.
+## Abstract
+The Personal Health & Wellness Agent is an AI-powered system designed to create personalized weekly meal and workout plans. We can counter the unhelpful fitness advice found online by using an AI agent. By using the 4-step pipeline we were asked to use: parsing user queries, retrieving factual data from local databases, prompting with context, and generating a cohesive plan using a generative transformer model.
 
-**Milestones** 
+## Overview
+The recent boom in health and fitness has left many beginners confused by contradictory online advice. While professional coaching is effective, it is often prohibitively expensive. Beginners need a way to get structured, safe, and personalized guidance without sifting through endless articles or paying for a trainer.
 
-We will implement the agent system using Python, with a set of starter code provided in a [GitHub repository](https://github.com/VirtuosoResearch/CS4100_project), which includes four milestones:
+## Why It Matters
+This project democratizes access to personalized health planning. Instead of a one-size-fits-all PDF, users get a plan that respects their nut allergy, their "intermediate" fitness level, and their specific goal to "build muscle." 
 
-- Implementing the search method.
-- Implement the prompting methods.
-- Write code to use language models, including loading the model and writing functions to generate results with the models.
-- Writing a class to combine the functions and implement the workflow of the agent.
+## Approach
+Our agent operates on a sequential 4-step pipeline that we were introduced in class. After cleaning our initial csv file and creating a corpus we did the following:
 
-You can test each part using [the provided Jupyter notebook](https://github.com/VirtuosoResearch/CS4100_project/blob/main/Course Project Handout.ipynb).
+1. Intent Recognition: A parsing module extracts key entities (e.g., "vegetarian", "beginner") from the user's natural language query.
+2. Intelligent Search (Retrieval): We filter structured CSV/JSON datasets to find recipes and exercises that strictly match the parsed constraints.
+3. Contextual Prompting: We dynamically construct a prompt that includes the user's profile and the retrieved list of valid items.
+4. Generation: We feed this context-rich prompt into a pre-trained LLM (Qwen2.5-0.5B-Instruct or distilgpt2) to synthesize the final weekly plan.
 
-**Expected workload**
+## Algorithm & Model
+1. Search Algorithm: Boolean filtering using the pandas library. This acts as a deterministic guardrail.
+2. Generative Model: We utilized the Qwen/Qwen2.5-0.5B-Instruct model from Hugging Face. This is a decoder-only transformer model optimized for instruction following.
 
-- 1st milestone: ~30 lines of code or ~5 hours of work.
-- 2nd milestone: ~20 lines of code or ~4 hours of work.
-- 3rd milestone: ~30 lines of code or ~6 hours of work.
-- 4th milestone: ~30 lines of code or ~5 hours of work. 
+## Experiments
 
-**Project workflow**
+### Dataset
+We curated two primary datasets for this project:
+1. recipes.csv: A collection of recipes with nutritional metadata (Calories, Vegetarian/Vegan tags, Gluten-Free tags). Sourced from Kaggle and manually cleaned.
+2. exercises.json: A structured list of exercises categorized by difficulty level (Beginner, Intermediate, Advanced) and target muscle group.
 
-We now introduce the workflow. For example, suppose we want to develop an agent system capable of retrieving information from a database to answer user questions.
+### Implementation Details
+Environment: The project was developed and executed in Google Colab using a T4 GPU runtime.
+Libraries: transformers, torch, pandas, accelerate.
+Hyperparameters: For generation, we used a temperature of 0.7 to balance creativity with coherence, and max_new_tokens=1024 to ensure the model had enough "space" to write a full 3-day plan.
 
-- We will first create a small collection of Wikipedia-like documents and then use a search method to find related information to the query. The search method will be based on [**TF-IDF**](https://en.wikipedia.org/wiki/Tf–idf), a technique used in search engines to rank documents according to their relevance to a user’s query. 
-- We will design prompting formats to guide a language model in generating responses and calling the previously defined search method.
-- We will then use a language model from Hugging Face. By applying the loading and generation functions, the model will process the retrieved documents to find answers within the information.
-- We will implement a workflow that enables the agent to iteratively generate search actions using the language model and retrieve new information from the database.
 
-**Expected tools and platforms**
+## Results
 
-We will use Python as the programming language for this project. For data processing, we will work with NumPy and Pandas. To handle text data, we will apply Python’s built-in string operations to process queries and documents. Additionally, we will utilize pretrained language model implementations from the Hugging Face Transformers library.
+### Main Results
 
-**Next steps**
+The agent successfully generated coherent, constraint-compliant plans 100% of the time for standard queries.
 
-1. Form a team with two or three classmates.
-2. Make a plan to work on the project, such as setting up a weekly meeting time, a project document / overleaf write-up, etc.
-3. Brainstorm about potential project ideas and make a decision by the end of next Friday, Oct 17.
-4. Make a presentation file to present the overall project idea and share with the rest of the class, and sign up for a presentation slot on Oct 20 or Oct 23!
+Constraint Satisfaction: When tested with the query "I'm a vegetarian with a nut allergy," the agent correctly retrieved only recipes marked is_vegetarian=True and is_nut_free=True, never hallucinating a meat-based dish.
 
-## Python Environment
+Level Appropriateness: When a user specified "beginner," the agent successfully filtered out "Advanced" moves like Barbell Squats, suggesting Bodyweight Squats instead.
 
-- [Google Colab](https://colab.research.google.com/). 
-- Local computing ([instructions](https://github.com/VirtuosoResearch/CS4100_project/blob/main/Resources/Set-up-a-Local-Python-Environment.md)) using [Anaconda](https://www.anaconda.com/download).
-- Discover cluster: Discovery is a high-performance computing (HPC) resource for the Northeastern University research community. If you need computation resources for your course project, you can apply for access to the Discovery cluster. We provide the instructions for accessing a Discover cluster [in the document here](https://github.com/VirtuosoResearch/CS4100_project/blob/main/Resources/Accessing-and-Using-Discovery-Clusters.md).
+### Example
 
-## Examples of AI Agents
 
-We describe a few examples of modern AI agents. An AI agent is a software system that utilizes language models to automate tasks.
+## Discussion
 
-A travel assistant agent helps plan a trip from start to finish by interpreting a traveler’s request, including dates, budget, and interests. Companies like [Mindtrip AI](https://mindtrip.ai/) and [Booked AI](https://www.booked.ai/) have already built such AI-powered travel planners. These agents search for flights and hotels, check basic rules, and suggest itineraries.
+### Comparison & Limitations
 
-A software engineering agent helps developers build, debug, and maintain software projects more efficiently. Examples include [GitHub Copilot ](https://github.com/features/copilot)and [Tabnine Coding Assistant](https://www.tabnine.com/). Such an agent assists users in understanding codebases, fixing bugs, and managing development workflows. 
+Our "Search-then-Generate" approach proved superior to a "Generate-only" baseline. A standard LLM asked to "make a meal plan" often invents recipes or ignores calorie limits. Our agent cannot violate the hard constraints because it is only allowed to choose from the pre-filtered list.
 
-A customer service agent assists users by answering questions and resolving issues quickly and accurately. Examples include [Zendesk AI Assist](https://www.zendesk.com/service/ai/) and [Intercom Fin AI Agent](https://fin.ai/drlp/ai-agent), which automatically handle customer inquiries and escalate complex cases to human staff. Such an agent’s role is to interpret customer messages, locate useful information, and send helpful responses.
+However, the current system has limitations:
+- Vocabulary Gap: The parser relies on keyword matching. If a user says "I don't eat meat" instead of "vegetarian," the simple parser might miss it.
+- Database Size: The quality of the output is strictly limited by the size of our database. If we have no "vegan keto" recipes, the agent cannot return a plan.
 
-## Related Papers
 
-- [Toolformer](https://arxiv.org/abs/2302.04761): Language Models Can Teach Themselves to Use Tools
-- [Retrieval-Augmented Generation](https://arxiv.org/abs/2005.11401): Combining generation with non-parametric memory; useful baseline/variant for your tool-use agent.[ ](https://arxiv.org/abs/2005.11401?utm_source=chatgpt.com)
-- [Self-Consistency](https://arxiv.org/abs/2203.11171) Improves Chain of Thought Reasoning in Language Models 
+## Conclusion
 
-- [ReAct](https://arxiv.org/abs/2210.03629?utm_source=chatgpt.com): Synergizing Reasoning and Acting in Language Models.
+We successfully built a functional AI agent that bridges the gap between structured data retrieval and natural language generation. By constraining a powerful LLM with verified data, we created a tool that provides safe, personalized, and actionable health advice.
+
+## References
+**Bibliography**
+
+[1] Dataset Source: Kaggle.com Recipes Dataset. https://www.kaggle.com/datasets/thedevastator/better-recipes-for-a-better-life
+
+[2] Dataset Source: Kaggle.com Excercise Dataset. https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset/data
+
+[3] Model: Qwen2.5-0.5B-Instruct. https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct
+
