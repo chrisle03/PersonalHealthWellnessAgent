@@ -42,15 +42,21 @@ class ReActAgent:
 
     def run(self, user_query: str) -> Dict[str, Any]:
         self.trajectory.clear()
+
+        step_idx = 0
+        final_answer = None
+        
         for step_idx in range(self.config.max_steps):
+            if self.config.verbose:
+                print(f"--- Step {step_idx + 1} ---")
             # ====== TODO ======
             # 1. At each step, format the prompt based on the make_prompt function and self.trajectory
-            prompt = None
+            prompt = make_prompt(user_query, self.trajectory)
             # ====== TODO ======
 
             # ====== TODO ======
             # 2. Use self.llm to process the prompt
-            out = None
+            out = self.llm(prompt)
             # ====== TODO ======
 
             # Expect two lines: Thought:..., Action:...
@@ -62,7 +68,7 @@ class ReActAgent:
 
             # ====== TODO ======
             # 3. Parse the action of the action line using the parse_action function
-            parsed = None
+            parsed = parse_action(action_line)
             # ====== TODO ======
 
             if not parsed:
