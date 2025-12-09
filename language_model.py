@@ -10,10 +10,30 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
 
 # ====== TODO ======
 # Load model with AutoModelForCausalLM.from_pretrained() from huggingface with the above MODEL_NAME, LOAD_8BIT, DTYPE
-model = None
+try:
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_NAME,
+        load_in_8bit=LOAD_8BIT,
+        torch_dtype=DTYPE,
+        device_map="auto", # Automatically places model on GPU if available
+        trust_remote_code=True
+    )
+except Exception as e:
+    print(f"Error loading model with device_map='auto': {e}")
+    print("Falling back to CPU/Standard load...")
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    if torch.cuda.is_available():
+        model.to("cuda")
 
 # Generation configuration: use GenerationConfig to define the generation parameters
-gen_cfg = None
+gen_cfg = GenerationConfig(
+    max_new_tokens=200,
+    do_sample=True,
+    temperature=0.01,
+    top_p=0.9,
+    repetition_penalty=1.1,
+    pad_token_id=tokenizer.eos_token_id
+)
 # ====== TODO ======
 
 # ====== Helper function: Enforce two-line schema in the decoding ======
@@ -76,8 +96,9 @@ def hf_llm(prompt: str) -> str:
     #     Here, let's write the code to use language model to generate the response given the full_prompt
     #     First, we need to use the tokenizer to tokenize the prompt into pytorch tensors
     #     Second, we need to use model.generate() to generate the model response (which includes the Thought and Action)
-    inputs = None
-    output_ids = None
+    device = model.device
+    inputs = tokenizer(full_prompt, return_tensors="pt").to(device)
+    output_ids = model.generate(**inputs, generation_config=gen_cfg)
     # ====== TODO ======
 
 
